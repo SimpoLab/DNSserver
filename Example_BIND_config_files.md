@@ -1,6 +1,6 @@
 >[!warning]
 >Modify the files in order to apply to your case! These files **will not work out of the box**.
->See the [[A guide to DNS selfhosting|main guide]] for explanation and (e.g. key generating) commands.
+>See the [main guide](README.md) for explanation and (e.g. key generating) commands.
 
 Our setup consists of a main zone example.org, a manually mantained subzone user1.example.org, and a dynamic DNS zone dyn.example.org.
 

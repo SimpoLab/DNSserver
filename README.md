@@ -1,10 +1,9 @@
-[Repository version](https://github.com/SimpoLab/DNSserver)
-
+# DNS server
 BIND (or named) is the most widely used Domain Name System (DNS) server.
 
 As a disclaimer, I am not an expert on the matter by any means. I'm just reporting as a guide what I have done on my server and what I found to work.
 
-[[Example BIND config files|TL;DR: example config files]] ^3f95f5
+[TL;DR: example config files](Example_BIND_config_files.md)
 
 You probably want to configure your domain registrar to set their NS+A records for your domain to point to your server.
 See your provider's documentation.
@@ -20,8 +19,7 @@ systemctl start named.service
 ```
 
 
-
-# Zones
+## Zones
 A zone is a hierarchical, independently configured set of subdomains.
 A basic configuration of a zone in `named.conf` looks like this
 
@@ -67,8 +65,7 @@ Basically, the SOA record gives information about the server, the NS records giv
 When you modify a zonefile you have to increment the serial (in this case we use the convention YYYYMMDDnn, where nn is just an incremental integer) and then reload BIND (if using systemd, just run `systemctl reload named.service`).
 
 
-
-# DNSSEC
+## DNSSEC
 DNSSEC adds cryptographic signatures to DNS records to make the protocol secure.
 See e.g. [Cloudflare](https://www.cloudflare.com/dns/dnssec/how-dnssec-works/)'s introduction to have an idea of how the protocol works and what the various DNSSEC record types do.
 
@@ -115,8 +112,7 @@ We suggest to add the DS record as a comment in the child zonefile too.
 Finally, reload BIND.
 
 
-
-# Subzones
+## Subzones
 Say you want to independently configure a subdomain and its subdomains, e.g. to give a way to user1 to manage their zone user1.example.com.
 You can do that by defining a zone user1.example.com and correctly pointing at it in the zone example.com.
 
@@ -141,11 +137,10 @@ ns2.user1	A	42.42.42.42
 
 A reload makes our changes effective.
 
-
-## DNSSEC
+### DNSSEC
 In order to implement DNSSEC in our subzones we just make the new zone compliant to the protocol.
 
-As before (see [[#DNSSEC]]), we update `named.conf` by adding DNSSEC, we generate ZSK and KSK key-pairs and add DNSKEY records to the zonefile `user1.example.com.zone`.
+As before (see [#DNSSEC](#DNSSEC)), we update `named.conf` by adding DNSSEC, we generate ZSK and KSK key-pairs and add DNSKEY records to the zonefile `user1.example.com.zone`.
 We also add the DS record for the KSK in the parent zonefile (`example.com.zone`) under the host `user1`:
 
 ```zonefile title="example.com.zone"
@@ -155,8 +150,7 @@ user1 IN DS 20716 7 2 NR1S5P4S.........N12S12NO6S3 ; KSK, ID: 69420
 Make sure che `key-directory` is read-writable by both `user1` and `named`, as for the zonefile.
 
 
-
-# Dynamic DNS
+## Dynamic DNS
 
 [DDNS](https://en.wikipedia.org/wiki/Dynamic_DNS) automatically updates a DNS record.
 You can use it e.g. for keeping a record pointing to your home's IP address, even if such address changes periodically.
@@ -169,7 +163,7 @@ BIND provides a convenient command to generate configuration snippets for DDNS:
 ddns-confgen -k mainkey -z dyn.example.com
 ```
 
-As explained by the command output, the first code snippet adds to our configuration (`named.conf`) a symmetric key^[The key generation performed by `ddns-confgen` can be done independently by using `tsig-keygen`.], which we'll use to update our record dynamically:
+As explained by the command output, the first code snippet adds to our configuration (`named.conf`) a symmetric key (the key generation performed by `ddns-confgen` can be done independently by using `tsig-keygen`), which we'll use to update our record dynamically:
 ```named title="named.conf"
 key "mainkey" {
         algorithm hmac-sha256;
@@ -196,7 +190,7 @@ Before reloading the server, configure an initial zonefile `dyn.example.com.zone
 The file serves as a starting point but will be overwritten by the dynamic updates.
 
 Once reloaded the server, you may dynamically add records via the `nsupdate` command, provided that you have the key.
-This also works remotely^[You may omit the server command if the server is local.].
+This also works remotely (you may omit the server command if the server is local.).
 For example `nsupdate -k mainkey.key` will open an interactive command line, in which you may type:
 
 ```nsupdate
@@ -222,8 +216,7 @@ home.dyn.example.com
 
 The client will periodically check if its IP address changed, and if so it will use the given key to remotely update an A record for the name `home.dyn.example.com`.
 
-
-## Dynamic subzones with multiple keys
+### Dynamic subzones with multiple keys
 You might need multiple users to have dynamic records, but you don't want each user to have their own dynamic zone or users to be able to modify each other's records.
 This problem is solved by creating a dynamic zone `dyn.example.com`, and only allowing user1 to modify records ending in `user1.dyn.example.com`.
 
@@ -259,11 +252,9 @@ A copy of `user1key` will be provided to user1 and a copy of `user2key` to user2
 Of course a more precise permission scheme can be set up, see `named.conf(5)`.
 
 
+## Tweaks
 
-# Tweaks
-
-
-## Disable ipv6
+### Disable ipv6
 At the moment we disabled ipv6 because it gave us problems and we don't really need it right now.
 You can do that by overriding the systemd unit file:
 
@@ -285,14 +276,16 @@ listen-on-v6 { any; }
 ```
 
 
-
-# Sources
+## Sources
 - [BIND docs](https://bind9.readthedocs.io/en/latest/chapter3.html)
 - [BIND ArchWiki page](https://wiki.archlinux.org/title/BIND)
 - [Cloudflare's introduction to DNSSEC](https://www.cloudflare.com/dns/dnssec/how-dnssec-works)
 - [ddclient docs](https://ddclient.net/protocols.html#nsupdate)
 
 
-
-# License
+## License
 This work is licensed under a [CC BY-NC-SA 4.0 license](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode)
+
+
+## Contribution
+If you find wrong or incomplete information, please report it via issue or pull request.
